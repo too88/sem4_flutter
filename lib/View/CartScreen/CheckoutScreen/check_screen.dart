@@ -19,12 +19,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class CheckoutScreen extends StatefulWidget {
   final List<ProductEntity> productList;
   final String totalPrice;
+  final http.Response res;
   const CheckoutScreen(
-      {super.key, required this.productList, required this.totalPrice});
+      {super.key, required this.productList, required this.totalPrice, required this.res});
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -153,7 +155,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             final CustomColors colors = duplicateController.colors;
             final CustomTextStyle textStyle = duplicateController.textStyle;
             String addressDetail = "";
-            String addressName = "";
 
             return Scaffold(
               appBar: AppBar(
@@ -341,11 +342,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     callback: () async {
                       if (userData != null) {
                         if (addressDetail.isNotEmpty && addressDetail.isNotEmpty) {
+
                           Get.to(PaymentScreen(
                             totalPrice: widget.totalPrice,
                             productList: widget.productList,
                             addressDetail: addressDetail,
                             addressName: userData?.fullname ?? "",
+                            token: userData?.token ?? "",
+                            order: widget.res
 
                           ));
                         } else {

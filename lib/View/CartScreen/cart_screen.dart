@@ -1,15 +1,22 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_ecommerce/Model/GetX/Controller/duplicate_controller.dart';
 import 'package:flutter_application_ecommerce/Model/Tools/Constant/const.dart';
 import 'package:flutter_application_ecommerce/Model/Widget/widget.dart';
+import 'package:flutter_application_ecommerce/Model/user_model.dart';
 import 'package:flutter_application_ecommerce/View/CartScreen/CheckoutScreen/check_screen.dart';
 import 'package:flutter_application_ecommerce/View/CartScreen/bloc/cart_bloc.dart';
+import 'package:flutter_application_ecommerce/ViewModel/controller.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
+import 'package:http/http.dart';
 
 CartBloc? cartBloc;
 const int kCooldownLongMs = 3000;
@@ -23,10 +30,29 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  UserModel? userData;
+  OrderController orderController = OrderController();
+
+  @override
+  void initState() {
+    super.initState();
+    userRetriever();
+  }
+
   @override
   void dispose() {
     cartBloc?.close();
     super.dispose();
+  }
+
+  userRetriever() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final userInfo = prefs.getString('user') ?? '';
+    final tempDecode = jsonDecode(userInfo);
+    var convert = UserModel.fromJson(tempDecode);
+    setState(() {
+      userData = convert;
+    });
   }
 
   @override
@@ -154,9 +180,37 @@ class _CartScreenState extends State<CartScreen> {
                         ],
                       ),
                       textStyle: textStyle,
-                      callback: () {
-                        Get.to(CheckoutScreen(
-                            productList: productList, totalPrice: totalPrice));
+                      callback: () async {
+                        if (userData != null) {
+                          //TODO: call create Order right here!
+                          final response = await post(
+                            Uri.parse("http://172.17.32.1:8080/api/v1/order"),
+                            headers: <String, String>{
+                              'Content-type': 'application/json',
+                              "Accept": "application/json",
+                              'Authorization': 'Bearer ${userData!.token!}'
+                            },
+                            body: json.encode({
+                              "products": [
+                                for (final ele in productList)
+                                  {
+                                    "id": ele.id,
+                                    "name": ele.name,
+                                    "price": ele.price,
+                                    "quantity": 1,
+                                    "thumbnail": ele.imageUrl
+                                  }
+                              ]
+                            }),
+                          );
+
+                          Get.to(CheckoutScreen(
+                              res: response,
+                              productList: productList,
+                              totalPrice: totalPrice));
+                        } else {
+                          loginRequiredDialog(textStyle: textStyle);
+                        }
                       },
                     ),
                   ],

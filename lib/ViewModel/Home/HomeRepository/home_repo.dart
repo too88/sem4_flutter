@@ -8,8 +8,8 @@ class HomeRepository implements HomeDataSource {
   @override
   Future<List<ProductEntity>> getProducts() => dataSource.getProducts();
 
-  // @override
-  // Future<List<ProductEntity>> getProductsWithKeyWord(
-  //         {required String keyWord}) =>
-  //     dataSource.getProductsWithKeyWord(keyWord: keyWord);
+  @override
+  Future<List<ProductEntity>> getProductsWithKeyWord(
+          {required String keyWord}) =>
+      dataSource.getProductsWithKeyWord(keyWord: keyWord);
 }

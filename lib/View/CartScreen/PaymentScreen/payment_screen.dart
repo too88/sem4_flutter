@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +15,7 @@ import 'package:flutter_application_ecommerce/View/RootScreen/root.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class PaymentScreen extends StatelessWidget {
   const PaymentScreen({
@@ -20,12 +24,17 @@ class PaymentScreen extends StatelessWidget {
     required this.productList,
     required this.addressDetail,
     required this.addressName,
+    required this.token,
+    required this.order,
+
   });
 
   final String totalPrice;
   final List<ProductEntity> productList;
   final String addressDetail;
   final String addressName;
+  final String token;
+  final http.Response order;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +50,7 @@ class PaymentScreen extends StatelessWidget {
         symbol: 'VND',
         decimalDigits: 0);
 
+    log("+++++++++++LOG HERE+++++++++ ${json.decode(order.body)["id"]}");
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
@@ -71,6 +81,28 @@ class PaymentScreen extends StatelessWidget {
                       CupertinoButton(
                         child: const Text("Yes"),
                         onPressed: () async {
+                          //TODO: call update Order right here!
+                          final response = await http.put(
+                            Uri.parse("http://172.17.32.1:8080/api/v1/order/${json.decode(order.body)["id"]}"),
+                            headers: <String, String>{
+                              'Content-type': 'application/json',
+                              "Accept": "application/json",
+                              'Authorization': 'Bearer $token'
+                            },
+                            body: json.encode({
+                              "status": "PAID",
+                              "products": [
+                                for(final ele in productList) {
+                                  "id": ele.id,
+                                  "name": ele.name,
+                                  "price": ele.price,
+                                  "quantity": 1,
+                                  "thumbnail": ele.imageUrl
+                                }
+                              ]
+                            }),
+                          );
+
                           await profileController.orderFunctions.addToOrderBox(
                               orderEntity: OrderEntity(
                                   time: dateTime,
@@ -251,7 +283,7 @@ class PaymentScreen extends StatelessWidget {
                             style: textStyle.bodyNormal,
                           ),
                           suffix: Text(
-                            "My E-Wallet",
+                            "Cash",
                             style: textStyle.bodyNormal
                                 .copyWith(fontWeight: FontWeight.bold),
                           )),
